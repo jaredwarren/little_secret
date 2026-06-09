@@ -1,3 +1,6 @@
+> ⚠️ [WARNING] ⚠️
+> This project is heavily vibe coded and is a **Work in Progress**. Features, code architecture, and configurations are probably garbage. Use at your own risk!
+
 # Little Secret 🐱🐶
 
 A sleek, cyberpunk-themed real-time multiplayer social deduction party game built with Go, WebSockets, and vanilla Web technologies (HTML, CSS, and JS). 
