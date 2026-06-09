@@ -5,7 +5,7 @@ BINARY_NAME=littlesecrets
 BIN_DIR=bin
 PORT?=8080
 
-.PHONY: all build run test fmt vet lint clean help
+.PHONY: all build run test fmt vet lint clean help kill
 
 all: help
 
@@ -13,13 +13,13 @@ all: help
 build:
 	@echo "Building binary..."
 	@mkdir -p $(BIN_DIR)
-	go build -o $(BIN_DIR)/$(BINARY_NAME) main.go
+	go build -o $(BIN_DIR)/$(BINARY_NAME) cmd/game/main.go
 	@echo "Binary built successfully at $(BIN_DIR)/$(BINARY_NAME)"
 
 ## run: Run the server locally using go run
 run:
 	@echo "Starting server on port $(PORT)..."
-	PORT=$(PORT) go run main.go
+	PORT=$(PORT) go run cmd/game/main.go
 
 ## run-bin: Build and run the compiled binary
 run-bin: build
@@ -64,3 +64,13 @@ help:
 	@echo ""
 	@echo "Targets:"
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
+
+## kill: Kill any process listening on the configured PORT (default: 8080)
+kill:
+	@echo "Killing process on port $(PORT)..."
+	@PID=$$(lsof -t -i:$(PORT) 2>/dev/null); \
+	if [ -n "$$PID" ]; then \
+		kill -9 $$PID && echo "Killed process $$PID." || echo "Failed to kill process $$PID."; \
+	else \
+		echo "No process running on port $(PORT)."; \
+	fi

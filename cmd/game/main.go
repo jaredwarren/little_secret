@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jaredwarren/LittleSecrets/server"
+	"github.com/jaredwarren/LittleSecrets/internal/server"
 )
 
 func main() {

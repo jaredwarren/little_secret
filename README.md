@@ -117,13 +117,17 @@ Packs are saved as JSON files in the `data/packs/` directory and loaded dynamica
 ```
 ├── .github/workflows/   # CI/CD Workflows
 │   └── go.yml           # GitHub Actions configuration
+├── cmd/
+│   └── game/            # Go entrypoint directory
+│       └── main.go      # Main runner file
 ├── data/
 │   └── packs/           # JSON files containing word/card packs
-├── server/              # Core Go game backend
-│   ├── hub.go           # WebSocket Connection and Lobby Hub
-│   ├── lobby.go         # Lobby State and game rules/engine
-│   ├── lobby_test.go    # Unit tests for game rules and states
-│   └── pack.go          # Pack loading/saving utilities
+├── internal/
+│   └── server/          # Core Go game backend
+│       ├── hub.go       # WebSocket Connection and Lobby Hub
+│       ├── lobby.go     # Lobby State and game rules/engine
+│       ├── lobby_test.go # Unit tests for game rules and states
+│       └── pack.go      # Pack loading/saving utilities
 ├── static/              # Frontend Assets
 │   ├── index.html       # Single Page Application HTML structure
 │   ├── index.css        # Cyberpunk stylesheet & grid layout

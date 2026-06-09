@@ -15,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go application binary
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o littlesecrets main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o littlesecrets cmd/game/main.go
 
 # Production stage
 FROM alpine:3.20
