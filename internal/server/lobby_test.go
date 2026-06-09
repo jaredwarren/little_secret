@@ -58,7 +58,7 @@ func TestStartRoundAndGameplayOnline(t *testing.T) {
 	if lobby.GoodWord == lobby.ConfusedWord {
 		t.Errorf("Expected GoodWord and ConfusedWord to be different, got both %s", lobby.GoodWord)
 	}
-	if !(lobby.GoodWord == "GoodWord" || lobby.GoodWord == "ConfusedWord") {
+	if lobby.GoodWord != "GoodWord" && lobby.GoodWord != "ConfusedWord" {
 		t.Errorf("Unexpected GoodWord value: %s", lobby.GoodWord)
 	}
 

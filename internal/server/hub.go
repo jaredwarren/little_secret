@@ -60,7 +60,9 @@ func (h *Hub) HandleConnection(w http.ResponseWriter, r *http.Request) {
 		log.Printf("upgrade error: %v", err)
 		return
 	}
-	defer conn.Close()
+	defer func() {
+		_ = conn.Close()
+	}()
 
 	var currentPlayerID string
 	var currentRoomCode string
@@ -160,7 +162,9 @@ func (h *Hub) handleCreateRoom(conn *websocket.Conn, msg *ClientMessage, current
 	welcomeMsg := ServerMessage{Type: "welcome"}
 	welcomeMsg.Welcome.PlayerID = playerID
 	welcomeMsg.Welcome.RoomCode = roomCode
-	conn.WriteJSON(welcomeMsg)
+	if err := conn.WriteJSON(welcomeMsg); err != nil {
+		log.Printf("Failed to write welcome message: %v", err)
+	}
 
 	// Broadcast lobby state
 	go h.BroadcastLobbyState(roomCode)
@@ -217,7 +221,9 @@ func (h *Hub) handleJoinRoom(conn *websocket.Conn, msg *ClientMessage, currentPl
 	welcomeMsg := ServerMessage{Type: "welcome"}
 	welcomeMsg.Welcome.PlayerID = playerID
 	welcomeMsg.Welcome.RoomCode = roomCode
-	conn.WriteJSON(welcomeMsg)
+	if err := conn.WriteJSON(welcomeMsg); err != nil {
+		log.Printf("Failed to write welcome message: %v", err)
+	}
 
 	// Broadcast
 	go h.BroadcastLobbyState(roomCode)
@@ -483,5 +489,7 @@ func (h *Hub) sendError(conn *websocket.Conn, message string) {
 		Type:  "error",
 		Error: message,
 	}
-	conn.WriteJSON(msg)
+	if err := conn.WriteJSON(msg); err != nil {
+		log.Printf("Failed to write error message: %v", err)
+	}
 }

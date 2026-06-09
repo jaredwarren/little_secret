@@ -76,7 +76,9 @@ func main() {
 			for name := range packs {
 				packNames = append(packNames, name)
 			}
-			json.NewEncoder(w).Encode(packNames)
+			if err := json.NewEncoder(w).Encode(packNames); err != nil {
+				log.Printf("Error encoding pack names: %v", err)
+			}
 
 		case http.MethodPost:
 			var pack server.MissionPack
@@ -102,7 +104,9 @@ func main() {
 			}
 
 			w.WriteHeader(http.StatusCreated)
-			json.NewEncoder(w).Encode(map[string]string{"status": "created", "name": pack.Name})
+			if err := json.NewEncoder(w).Encode(map[string]string{"status": "created", "name": pack.Name}); err != nil {
+				log.Printf("Error encoding created response: %v", err)
+			}
 
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

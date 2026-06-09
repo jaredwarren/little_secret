@@ -184,11 +184,12 @@ func (l *Lobby) StartRound(pack MissionPack) {
 		p.Clue = ""
 		p.Vote = ""
 		p.Role = rolePool[idx]
-		if p.Role == RoleGoodKitten {
+		switch p.Role {
+		case RoleGoodKitten:
 			p.Word = l.GoodWord
-		} else if p.Role == RoleConfusedKitten {
+		case RoleConfusedKitten:
 			p.Word = l.ConfusedWord
-		} else {
+		default:
 			p.Word = "" // Spy Pup gets no word
 		}
 		idx++
