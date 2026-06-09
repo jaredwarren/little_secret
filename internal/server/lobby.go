@@ -56,19 +56,19 @@ type GameConfig struct {
 }
 
 type Lobby struct {
-	Code               string            `json:"code"`
+	Code               string             `json:"code"`
 	Players            map[string]*Player `json:"players"`
-	Stage              Stage             `json:"stage"`
-	Config             GameConfig        `json:"config"`
-	GoodWord           string            `json:"goodWord,omitempty"`     // Omitted in sanitized states
-	ConfusedWord       string            `json:"confusedWord,omitempty"` // Omitted in sanitized states
-	ActiveWordNum      int               `json:"activeWordNum"`
-	EliminatedThisTurn []string          `json:"eliminatedThisTurn"` // IDs of players eliminated in the current voting round
-	Winner             string            `json:"winner"`             // "KITTENS", "SPY_PUP", "CONFUSED_KITTENS"
-	TiePlayers         []string          `json:"tiePlayers"`         // Tied player IDs in voting
-	IsTieVote          bool              `json:"isTieVote"`
-	TurnOrder          []string          `json:"turnOrder"`          // Ordered list of active player IDs
-	CurrentTurnIdx     int               `json:"currentTurnIdx"`
+	Stage              Stage              `json:"stage"`
+	Config             GameConfig         `json:"config"`
+	GoodWord           string             `json:"goodWord,omitempty"`     // Omitted in sanitized states
+	ConfusedWord       string             `json:"confusedWord,omitempty"` // Omitted in sanitized states
+	ActiveWordNum      int                `json:"activeWordNum"`
+	EliminatedThisTurn []string           `json:"eliminatedThisTurn"` // IDs of players eliminated in the current voting round
+	Winner             string             `json:"winner"`             // "KITTENS", "SPY_PUP", "CONFUSED_KITTENS"
+	TiePlayers         []string           `json:"tiePlayers"`         // Tied player IDs in voting
+	IsTieVote          bool               `json:"isTieVote"`
+	TurnOrder          []string           `json:"turnOrder"` // Ordered list of active player IDs
+	CurrentTurnIdx     int                `json:"currentTurnIdx"`
 }
 
 func GenerateRoomCode() string {
@@ -89,7 +89,7 @@ func NewLobby(code string, hostID, hostName string) *Lobby {
 			PackName:      DefaultPackName,
 			ConfusedCount: -1, // -1 indicates default by player count
 			SpyCount:      -1,
-			ManualWordNum: 0,  // random
+			ManualWordNum: 0, // random
 		},
 	}
 }
@@ -147,7 +147,7 @@ func (l *Lobby) StartRound(pack MissionPack) {
 	l.ActiveWordNum = wordIdx + 1
 
 	wordPair := pack.Words[wordIdx]
-	
+
 	// Randomly decide which word is Good and which is Confused
 	flipResult, _ := rand.Int(rand.Reader, big.NewInt(2))
 	if flipResult.Int64() == 0 {
@@ -384,7 +384,7 @@ func (l *Lobby) RevealPlayerRole(playerID string) {
 	}
 	p.IsEliminated = true
 	l.EliminatedThisTurn = []string{playerID}
-	
+
 	// Keep track of elimination in in-person mode
 	l.Stage = StageReveal
 	l.CheckWinConditions()
@@ -468,8 +468,8 @@ func (l *Lobby) SanitizeState(viewerID string) interface{} {
 		Vote         string `json:"vote"`
 		Connected    bool   `json:"connected"`
 		// Revealed at game over or when eliminated
-		Role         Role   `json:"role,omitempty"`
-		Word         string `json:"word,omitempty"`
+		Role Role   `json:"role,omitempty"`
+		Word string `json:"word,omitempty"`
 	}
 
 	sanitizedPlayers := make(map[string]*SanitizedPlayer)
@@ -514,8 +514,8 @@ func (l *Lobby) SanitizeState(viewerID string) interface{} {
 		TurnOrder          []string                    `json:"turnOrder"`
 		CurrentTurnIdx     int                         `json:"currentTurnIdx"`
 		// Only show the real passwords at game over
-		GoodWord           string                      `json:"goodWord,omitempty"`
-		ConfusedWord       string                      `json:"confusedWord,omitempty"`
+		GoodWord     string `json:"goodWord,omitempty"`
+		ConfusedWord string `json:"confusedWord,omitempty"`
 	}
 
 	sl := SanitizedLobby{

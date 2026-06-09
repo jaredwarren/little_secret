@@ -70,7 +70,7 @@ func main() {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			
+
 			// Return list of pack names
 			var packNames []string
 			for name := range packs {

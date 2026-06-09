@@ -6,7 +6,7 @@ import (
 
 func TestGetDefaultRoleCounts(t *testing.T) {
 	tests := []struct {
-		players  int
+		players          int
 		expectedConfused int
 		expectedSpy      int
 	}{
@@ -100,7 +100,7 @@ func TestStartRoundAndGameplayOnline(t *testing.T) {
 	lobby.SubmitClue("host1", "clue1")
 	lobby.SubmitClue("p2", "clue2")
 	lobby.SubmitClue("p3", "clue3")
-	
+
 	// Stage shouldn't change yet
 	if lobby.Stage != StageClues {
 		t.Errorf("Stage changed too early: %s", lobby.Stage)
@@ -189,7 +189,7 @@ func TestWinConditions(t *testing.T) {
 				{"p1", RoleGoodKitten, false},
 				{"p2", RoleGoodKitten, false},
 				{"p3", RoleConfusedKitten, true}, // Confused Kitten is eliminated
-				{"p4", RoleSpyPup, true},          // Spy Pup is eliminated
+				{"p4", RoleSpyPup, true},         // Spy Pup is eliminated
 			},
 			action: func(l *Lobby) {
 				l.CheckWinConditions()
@@ -202,9 +202,9 @@ func TestWinConditions(t *testing.T) {
 			initialStage: StageReveal,
 			players: []testPlayer{
 				{"p1", RoleGoodKitten, false},
-				{"p2", RoleGoodKitten, true},  // Good Kitten eliminated
-				{"p3", RoleGoodKitten, true},  // Good Kitten eliminated
-				{"p4", RoleSpyPup, false},      // Spy Pup is still active
+				{"p2", RoleGoodKitten, true}, // Good Kitten eliminated
+				{"p3", RoleGoodKitten, true}, // Good Kitten eliminated
+				{"p4", RoleSpyPup, false},    // Spy Pup is still active
 			},
 			action: func(l *Lobby) {
 				l.CheckWinConditions()
@@ -327,7 +327,7 @@ func TestSequentialClues(t *testing.T) {
 	// Submit for remaining players
 	lobby.SubmitClue("p2", "clue-bob")
 	lobby.SubmitClue("p3", "clue-charlie")
-	
+
 	// Stage shouldn't be DEBATE yet
 	if lobby.Stage != StageClues {
 		t.Errorf("Expected stage CLUES before last player submits, got %s", lobby.Stage)
