@@ -54,17 +54,25 @@ func TestStartRoundAndGameplayOnline(t *testing.T) {
 	confusedKittens := 0
 	spyPups := 0
 
+	// Verify GoodWord and ConfusedWord are set properly (one is "GoodWord", other is "ConfusedWord")
+	if lobby.GoodWord == lobby.ConfusedWord {
+		t.Errorf("Expected GoodWord and ConfusedWord to be different, got both %s", lobby.GoodWord)
+	}
+	if !(lobby.GoodWord == "GoodWord" || lobby.GoodWord == "ConfusedWord") {
+		t.Errorf("Unexpected GoodWord value: %s", lobby.GoodWord)
+	}
+
 	for _, p := range lobby.Players {
 		switch p.Role {
 		case RoleGoodKitten:
 			goodKittens++
-			if p.Word != "GoodWord" {
-				t.Errorf("Good Kitten got wrong word: %s", p.Word)
+			if p.Word != lobby.GoodWord {
+				t.Errorf("Good Kitten got wrong word: %s (expected %s)", p.Word, lobby.GoodWord)
 			}
 		case RoleConfusedKitten:
 			confusedKittens++
-			if p.Word != "ConfusedWord" {
-				t.Errorf("Confused Kitten got wrong word: %s", p.Word)
+			if p.Word != lobby.ConfusedWord {
+				t.Errorf("Confused Kitten got wrong word: %s (expected %s)", p.Word, lobby.ConfusedWord)
 			}
 		case RoleSpyPup:
 			spyPups++

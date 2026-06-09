@@ -1,0 +1,42 @@
+# Binaries
+bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+LittleSecrets
+littlesecrets
+
+# OS Metadata
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Go environment and test outputs
+*.out
+*.test
+*.prof
+*.cov
+coverage.txt
+vendor/
+
+# Local configuration
+.env
+.env.local
+.env.*.local
+dist/
+tmp/

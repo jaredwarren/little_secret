@@ -147,8 +147,16 @@ func (l *Lobby) StartRound(pack MissionPack) {
 	l.ActiveWordNum = wordIdx + 1
 
 	wordPair := pack.Words[wordIdx]
-	l.GoodWord = wordPair.Good
-	l.ConfusedWord = wordPair.Confused
+	
+	// Randomly decide which word is Good and which is Confused
+	flipResult, _ := rand.Int(rand.Reader, big.NewInt(2))
+	if flipResult.Int64() == 0 {
+		l.GoodWord = wordPair.Good
+		l.ConfusedWord = wordPair.Confused
+	} else {
+		l.GoodWord = wordPair.Confused
+		l.ConfusedWord = wordPair.Good
+	}
 
 	// Create a pool of roles
 	var rolePool []Role
