@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Little Secret - Cyberpunk Party Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="stars-bg"></div>
+    <div class="glow-orb" id="orb-1"></div>
+    <div class="glow-orb" id="orb-2"></div>
+
+    <header class="app-header">
+        <div class="header-logo" id="logo-button">LITTLE SECRET</div>
+        <button id="btn-open-packs" class="btn-secondary small">Pack Manager</button>
+    </header>
+
+    <main class="app-container">
+        <!-- Error Alert -->
+        <div id="alert-banner" class="alert-banner hidden">
+            <span id="alert-message"></span>
+            <button id="btn-close-alert" class="alert-close">&times;</button>
+        </div>
+
+        <!-- 1. Connect Screen -->
+        <section id="screen-connect" class="view-screen glass-panel active">
+            <div class="hero-section">
+                <h1>LITTLE SECRET</h1>
+                <p class="subtitle">Good Kitten. Confused Kitten. Spy Pup. Who are you?</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="input-nickname">Your Nickname</label>
+                <input type="text" id="input-nickname" placeholder="Enter cyber-alias..." max="15">
+            </div>
+
+            <div class="action-grid">
+                <button id="btn-create-room" class="btn-primary">Create Room</button>
+                <div class="divider"><span>OR</span></div>
+                <div class="join-group">
+                    <input type="text" id="input-room-code" placeholder="ROOM CODE" style="text-transform: uppercase;">
+                    <button id="btn-join-room" class="btn-secondary">Join Game</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Lobby Screen -->
+        <section id="screen-lobby" class="view-screen glass-panel">
+            <div class="lobby-header">
+                <h2>Room Code: <span id="lobby-code-display" class="highlight select-all">XXXX</span></h2>
+                <span id="player-count-badge" class="badge">0 Players</span>
+            </div>
+
+            <div class="lobby-grid">
+                <!-- Players list -->
+                <div class="lobby-players-card">
+                    <h3>Players Joined</h3>
+                    <ul id="lobby-players-list" class="players-list">
+                        <!-- Filled dynamically -->
+                    </ul>
+                </div>
+
+                <!-- Host settings (Visible to all, editable only by host) -->
+                <div class="lobby-settings-card">
+                    <h3>Game Settings</h3>
+                    <div id="host-settings-notice" class="notice-box">
+                        Viewing settings... Only the host can modify.
+                    </div>
+
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label for="select-game-mode">Gameplay Mode</label>
+                            <select id="select-game-mode">
+                                <option value="ONLINE">Online Mode (Digital Clues & Voting)</option>
+                                <option value="IN_PERSON">In-Person Mode (Verbal Dealer)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="select-word-pack">Mission Pack</label>
+                            <select id="select-word-pack">
+                                <!-- Filled dynamically from API -->
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="select-word-num">Card / Password Number</label>
+                            <select id="select-word-num">
+                                <option value="0">Random Selection (Recommended)</option>
+                                <!-- Generated 1 to 21 dynamic -->
+                            </select>
+                        </div>
+
+                        <div class="accordion-toggle" id="btn-toggle-advanced">
+                            <span>Advanced Roles Override (Optional)</span>
+                            <span class="chevron">&#9662;</span>
+                        </div>
+
+                        <div id="advanced-settings" class="advanced-settings-panel hidden">
+                            <div class="form-group">
+                                <label for="input-confused-count">Confused Kittens Count</label>
+                                <input type="number" id="input-confused-count" min="-1" max="10" placeholder="Default (-1)">
+                            </div>
+                            <div class="form-group">
+                                <label for="input-spy-count">Spy Pups Count</label>
+                                <input type="number" id="input-spy-count" min="-1" max="5" placeholder="Default (-1)">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="btn-start-game" class="btn-primary start-game-btn" disabled>Start Game</button>
+                    <p id="start-game-warning" class="warning-text">Need at least 4 players to start.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Game Screen -->
+        <section id="screen-game" class="view-screen">
+            <div class="game-top-bar">
+                <div class="game-meta">
+                    <span id="game-mode-badge" class="badge">ONLINE</span>
+                    <span id="game-room-badge" class="badge secondary">ROOM: XXXX</span>
+                </div>
+                <div class="game-status-title" id="game-stage-title">ROUND RUNNING</div>
+            </div>
+
+            <!-- Card View -->
+            <div class="card-container">
+                <div class="game-card" id="role-card">
+                    <div class="card-face card-back">
+                        <div class="card-back-pattern">
+                            <div class="card-back-icon">?</div>
+                            <p>TAP TO REVEAL KEY</p>
+                        </div>
+                    </div>
+                    <div class="card-face card-front">
+                        <div id="role-image-container" class="role-image-box">
+                            <!-- Injected dynamically -->
+                        </div>
+                        <div class="role-info">
+                            <span class="role-label">YOUR SECRET ROLE</span>
+                            <h2 id="role-name-display" class="role-name">GOOD KITTEN</h2>
+                        </div>
+                        <div class="word-info">
+                            <span class="word-label">SECRET KEYWORD</span>
+                            <div id="role-word-display" class="role-word">COFFEE</div>
+                        </div>
+                        <p class="tap-hint">Tap again to hide your key</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Online Mode Stage Panels -->
+            <div id="online-panels">
+                <!-- A: Clues Input Stage -->
+                <div id="panel-clues" class="stage-panel glass-panel hidden">
+                    <h3>Input Your One-Word Clue</h3>
+                    <p class="instructions">Enter a single word that relates to your secret keyword, but don't make it too obvious to prevent the Spy Pup from guessing!</p>
+                    <div class="clue-input-box">
+                        <input type="text" id="input-clue" placeholder="Type clue here..." max="20">
+                        <button id="btn-submit-clue" class="btn-primary">Send Clue</button>
+                    </div>
+                    <div class="players-submission-status">
+                        <h4>Submissions</h4>
+                        <div id="clues-status-list" class="status-grid">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- B: Debate / Discussion Stage -->
+                <div id="panel-debate" class="stage-panel glass-panel hidden">
+                    <h3>Clues & Debate</h3>
+                    <p class="instructions">Discuss who might be the Spy Pup or a Confused Kitten! Do not say your secret word or repeat clues.</p>
+                    
+                    <div id="debate-clues-grid" class="clues-grid">
+                        <!-- Injected dynamically with players' names and clues -->
+                    </div>
+
+                    <!-- Host Controls -->
+                    <div class="host-controls-panel hidden" id="host-debate-controls">
+                        <button id="btn-advance-voting" class="btn-primary">Call Vote</button>
+                    </div>
+                </div>
+
+                <!-- C: Voting Stage -->
+                <div id="panel-voting" class="stage-panel glass-panel hidden">
+                    <h3 id="voting-panel-title">Elimination Vote</h3>
+                    <p class="instructions" id="voting-panel-instructions">Cast your vote to eliminate the player you suspect the most!</p>
+                    
+                    <div id="voting-players-grid" class="voting-grid">
+                        <!-- Injected dynamically with vote options -->
+                    </div>
+
+                    <div class="voting-tally-container">
+                        <h4>Submitting Votes...</h4>
+                        <div id="voting-tally-status" class="tally-status-grid">
+                            <!-- Show who has voted -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- In Person Mode Stage Panel -->
+            <div id="panel-in-person" class="stage-panel glass-panel hidden">
+                <h3>In-Person Dealer</h3>
+                <p class="instructions">All clues, discussions, and votes are done verbally in the room. This screen simply holds your card.</p>
+                <div class="in-person-controls">
+                    <button id="btn-in-person-reveal" class="btn-danger">Reveal Role (If Eliminated)</button>
+                    <p class="warning-text">Click only when voted out verbally by the group.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. Reveal / Elimination Screen -->
+        <section id="screen-reveal" class="view-screen glass-panel">
+            <h2>Player Eliminated</h2>
+            <div class="reveal-content">
+                <div id="eliminated-player-name" class="highlight text-large">Bob</div>
+                <p id="eliminated-player-status">is voted out! Checking role...</p>
+
+                <!-- Normal player reveal result -->
+                <div id="normal-reveal-result" class="reveal-result-box hidden">
+                    <div class="reveal-role-badge" id="reveal-role-badge">GOOD KITTEN</div>
+                    <p id="reveal-role-details">Their password matches the Good Kitten password.</p>
+                </div>
+
+                <!-- Spy Pup guess interaction -->
+                <div id="spy-guess-box" class="reveal-result-box hidden">
+                    <div class="reveal-role-badge spy">SPY PUP</div>
+                    <p>The Spy Pup is detected! But they have one last chance to win... Guess the Good Kitten's password!</p>
+                    
+                    <div id="spy-guess-controls" class="hidden">
+                        <div class="form-group">
+                            <label for="input-spy-guess">Secret Password Guess</label>
+                            <input type="text" id="input-spy-guess" placeholder="Enter word...">
+                        </div>
+                        <button id="btn-submit-spy-guess" class="btn-primary">Submit Guess</button>
+                    </div>
+                    <div id="spy-guess-waiting" class="notice-box">
+                        Waiting for Spy Pup to make their guess...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Host advance panel -->
+            <div class="host-controls-panel hidden" id="host-reveal-controls">
+                <button id="btn-advance-round" class="btn-primary">Start Next Round</button>
+            </div>
+        </section>
+
+        <!-- 5. Game Over Screen -->
+        <section id="screen-game-over" class="view-screen glass-panel">
+            <h1 id="game-over-title">KITTENS WIN!</h1>
+            <p id="game-over-subtitle" class="subtitle">The Spy Pup and Confused Kittens were successfully eliminated.</p>
+
+            <div class="words-summary-box">
+                <div class="word-summary">
+                    <span class="label">Good Kitten Word</span>
+                    <span class="value" id="game-over-good-word">Coffee</span>
+                </div>
+                <div class="word-summary">
+                    <span class="label">Confused Kitten Word</span>
+                    <span class="value" id="game-over-confused-word">Tea</span>
+                </div>
+            </div>
+
+            <h3>Player Roles Summary</h3>
+            <div class="table-container">
+                <table class="roles-table">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Role</th>
+                            <th>Starting Word</th>
+                        </tr>
+                    </thead>
+                    <tbody id="game-over-players-body">
+                        <!-- Dynamic -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="host-controls-panel hidden" id="host-game-over-controls">
+                <button id="btn-return-lobby" class="btn-primary">Return to Lobby</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- 6. Custom Packs Manager Modal -->
+    <div id="modal-packs" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>Card Packs Manager</h2>
+                <button id="btn-close-packs" class="btn-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="packs-layout">
+                    <!-- Packs List -->
+                    <div class="packs-list-section">
+                        <h3>Installed Packs</h3>
+                        <ul id="packs-installed-list" class="packs-list">
+                            <!-- Dynamically loaded -->
+                        </ul>
+                    </div>
+
+                    <!-- Upload Pack Form -->
+                    <div class="packs-upload-section">
+                        <h3>Upload Custom Pack</h3>
+                        <p class="instructions">Paste a JSON definition containing exactly 21 word pairs. Template is shown below.</p>
+                        
+                        <div class="form-group">
+                            <label for="input-pack-name">Pack Name</label>
+                            <input type="text" id="input-pack-name" placeholder="e.g. Pop Culture">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="textarea-pack-json">JSON Content</label>
+                            <textarea id="textarea-pack-json" placeholder="Paste JSON here..." rows="8"></textarea>
+                        </div>
+                        <button id="btn-upload-pack" class="btn-primary">Upload Pack</button>
+
+                        <div class="accordion-toggle" id="btn-toggle-template">
+                            <span>View JSON Template</span>
+                            <span class="chevron">&#9662;</span>
+                        </div>
+                        <pre id="pack-template-code" class="code-box hidden"><code>{
+  "name": "Pop Culture",
+  "words": [
+    {"good": "Batman", "confused": "Ironman"},
+    {"good": "Harry Potter", "confused": "Percy Jackson"},
+    ... (must have exactly 21 pairs)
+  ]
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

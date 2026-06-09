@@ -1,0 +1,89 @@
+{
+  "name": "Classic Pack",
+  "words": [
+    {
+      "good": "Perfume",
+      "confused": "Deodorant"
+    },
+    {
+      "good": "Coffee",
+      "confused": "Tea"
+    },
+    {
+      "good": "Bicycle",
+      "confused": "Scooter"
+    },
+    {
+      "good": "Ocean",
+      "confused": "Lake"
+    },
+    {
+      "good": "Apple",
+      "confused": "Pear"
+    },
+    {
+      "good": "Library",
+      "confused": "Bookshop"
+    },
+    {
+      "good": "Airplane",
+      "confused": "Helicopter"
+    },
+    {
+      "good": "Guitar",
+      "confused": "Violin"
+    },
+    {
+      "good": "Pizza",
+      "confused": "Flatbread"
+    },
+    {
+      "good": "Cat",
+      "confused": "Tiger"
+    },
+    {
+      "good": "Sun",
+      "confused": "Star"
+    },
+    {
+      "good": "River",
+      "confused": "Canal"
+    },
+    {
+      "good": "Cinema",
+      "confused": "Theatre"
+    },
+    {
+      "good": "Forest",
+      "confused": "Jungle"
+    },
+    {
+      "good": "Doctor",
+      "confused": "Nurse"
+    },
+    {
+      "good": "Watch",
+      "confused": "Clock"
+    },
+    {
+      "good": "Mountain",
+      "confused": "Hill"
+    },
+    {
+      "good": "Castle",
+      "confused": "Palace"
+    },
+    {
+      "good": "Window",
+      "confused": "Mirror"
+    },
+    {
+      "good": "Bread",
+      "confused": "Cake"
+    },
+    {
+      "good": "Gold",
+      "confused": "Brass"
+    }
+  ]
+}
