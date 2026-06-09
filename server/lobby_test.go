@@ -157,3 +157,177 @@ func TestResolveVotingTie(t *testing.T) {
 		t.Errorf("Expected p2 to be eliminated after tie-breaker")
 	}
 }
+
+func TestWinConditions(t *testing.T) {
+	type testPlayer struct {
+		id           string
+		role         Role
+		isEliminated bool
+	}
+
+	tests := []struct {
+		name           string
+		initialStage   Stage
+		goodWord       string
+		players        []testPlayer
+		action         func(l *Lobby)
+		expectedWinner string
+		expectedStage  Stage
+	}{
+		{
+			name:         "Kittens win when all bad guys eliminated",
+			initialStage: StageReveal,
+			players: []testPlayer{
+				{"p1", RoleGoodKitten, false},
+				{"p2", RoleGoodKitten, false},
+				{"p3", RoleConfusedKitten, true}, // Confused Kitten is eliminated
+				{"p4", RoleSpyPup, true},          // Spy Pup is eliminated
+			},
+			action: func(l *Lobby) {
+				l.CheckWinConditions()
+			},
+			expectedWinner: "KITTENS",
+			expectedStage:  StageGameOver,
+		},
+		{
+			name:         "Spy Pup wins when only 2 active players remain and Spy is active",
+			initialStage: StageReveal,
+			players: []testPlayer{
+				{"p1", RoleGoodKitten, false},
+				{"p2", RoleGoodKitten, true},  // Good Kitten eliminated
+				{"p3", RoleGoodKitten, true},  // Good Kitten eliminated
+				{"p4", RoleSpyPup, false},      // Spy Pup is still active
+			},
+			action: func(l *Lobby) {
+				l.CheckWinConditions()
+			},
+			expectedWinner: "SPY_PUP",
+			expectedStage:  StageGameOver,
+		},
+		{
+			name:         "Confused Kittens win when only 2 active players remain and Confused is active",
+			initialStage: StageReveal,
+			players: []testPlayer{
+				{"p1", RoleGoodKitten, false},
+				{"p2", RoleGoodKitten, true},
+				{"p3", RoleConfusedKitten, false}, // Confused Kitten still active
+				{"p4", RoleSpyPup, true},
+			},
+			action: func(l *Lobby) {
+				l.CheckWinConditions()
+			},
+			expectedWinner: "CONFUSED_KITTENS",
+			expectedStage:  StageGameOver,
+		},
+		{
+			name:         "Spy Pup wins instantly by correct password guess",
+			initialStage: StageReveal,
+			goodWord:     "Coffee",
+			players: []testPlayer{
+				{"p1", RoleGoodKitten, false},
+				{"p2", RoleGoodKitten, false},
+				{"p3", RoleConfusedKitten, false},
+				{"p4", RoleSpyPup, true}, // Spy Pup is eliminated and guessing
+			},
+			action: func(l *Lobby) {
+				l.GuessPassword("p4", " Coffee ") // check whitespace cleaning too
+			},
+			expectedWinner: "SPY_PUP",
+			expectedStage:  StageGameOver,
+		},
+		{
+			name:         "Game continues when Spy Pup guesses wrong and total active > 2",
+			initialStage: StageReveal,
+			goodWord:     "Coffee",
+			players: []testPlayer{
+				{"p1", RoleGoodKitten, false},
+				{"p2", RoleGoodKitten, false},
+				{"p3", RoleConfusedKitten, false}, // Confused kitten is active
+				{"p4", RoleSpyPup, true},          // Spy Pup is eliminated
+			},
+			action: func(l *Lobby) {
+				l.GuessPassword("p4", "wrong-word")
+			},
+			expectedWinner: "",
+			expectedStage:  StageReveal,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lobby := NewLobby("TEST", "p1", "Alice")
+			lobby.Stage = tt.initialStage
+			lobby.GoodWord = tt.goodWord
+
+			for _, p := range tt.players {
+				lobby.Players[p.id] = &Player{
+					ID:           p.id,
+					Role:         p.role,
+					IsEliminated: p.isEliminated,
+				}
+			}
+
+			if tt.action != nil {
+				tt.action(lobby)
+			}
+
+			if lobby.Winner != tt.expectedWinner {
+				t.Errorf("Expected winner %q, got %q", tt.expectedWinner, lobby.Winner)
+			}
+
+			if lobby.Stage != tt.expectedStage {
+				t.Errorf("Expected stage %s, got %s", tt.expectedStage, lobby.Stage)
+			}
+		})
+	}
+}
+
+func TestSequentialClues(t *testing.T) {
+	pack := MissionPack{
+		Name: "Test Pack",
+		Words: []WordPair{
+			{"GoodWord", "ConfusedWord"},
+		},
+	}
+
+	lobby := NewLobby("TEST", "p1", "Alice")
+	lobby.Config.SequentialClues = true
+	lobby.Players["p1"] = &Player{ID: "p1", Name: "Alice", IsHost: true, Connected: true}
+	lobby.Players["p2"] = &Player{ID: "p2", Name: "Bob", Connected: true}
+	lobby.Players["p3"] = &Player{ID: "p3", Name: "Charlie", Connected: true}
+	lobby.Players["p4"] = &Player{ID: "p4", Name: "David", Connected: true}
+
+	lobby.StartRound(pack)
+
+	// Since StartRound shuffles TurnOrder, we will override TurnOrder to be deterministic
+	lobby.TurnOrder = []string{"p1", "p2", "p3", "p4"}
+	lobby.CurrentTurnIdx = 0
+
+	// Try submitting for p2 (who is NOT the active player) -> should fail
+	if ok := lobby.SubmitClue("p2", "clue-bob"); ok {
+		t.Errorf("Expected SubmitClue to fail for p2 because it's p1's turn")
+	}
+
+	// Submit for p1 (active) -> should succeed and advance index
+	if ok := lobby.SubmitClue("p1", "clue-alice"); !ok {
+		t.Errorf("Expected SubmitClue to succeed for p1")
+	}
+	if lobby.CurrentTurnIdx != 1 {
+		t.Errorf("Expected CurrentTurnIdx to be 1, got %d", lobby.CurrentTurnIdx)
+	}
+
+	// Submit for remaining players
+	lobby.SubmitClue("p2", "clue-bob")
+	lobby.SubmitClue("p3", "clue-charlie")
+	
+	// Stage shouldn't be DEBATE yet
+	if lobby.Stage != StageClues {
+		t.Errorf("Expected stage CLUES before last player submits, got %s", lobby.Stage)
+	}
+
+	// Submit for last player p4 -> should advance to DEBATE stage
+	lobby.SubmitClue("p4", "clue-david")
+	if lobby.Stage != StageDebate {
+		t.Errorf("Expected stage DEBATE after last player submits, got %s", lobby.Stage)
+	}
+}

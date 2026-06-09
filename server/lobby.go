@@ -47,25 +47,28 @@ type Player struct {
 }
 
 type GameConfig struct {
-	Mode           GameMode `json:"mode"`
-	PackName       string   `json:"packName"`
-	ConfusedCount  int      `json:"confusedCount"`
-	SpyCount       int      `json:"spyCount"`
-	ManualWordNum  int      `json:"manualWordNum"` // 0 for random, 1-21 for manual
+	Mode            GameMode `json:"mode"`
+	PackName        string   `json:"packName"`
+	ConfusedCount   int      `json:"confusedCount"`
+	SpyCount        int      `json:"spyCount"`
+	ManualWordNum   int      `json:"manualWordNum"` // 0 for random, 1-21 for manual
+	SequentialClues bool     `json:"sequentialClues"`
 }
 
 type Lobby struct {
-	Code              string            `json:"code"`
-	Players           map[string]*Player `json:"players"`
-	Stage             Stage             `json:"stage"`
-	Config            GameConfig        `json:"config"`
-	GoodWord          string            `json:"goodWord,omitempty"`     // Omitted in sanitized states
-	ConfusedWord      string            `json:"confusedWord,omitempty"` // Omitted in sanitized states
-	ActiveWordNum     int               `json:"activeWordNum"`
-	EliminatedThisTurn []string         `json:"eliminatedThisTurn"` // IDs of players eliminated in the current voting round
-	Winner            string            `json:"winner"`             // "KITTENS", "SPY_PUP", "CONFUSED_KITTENS"
-	TiePlayers        []string          `json:"tiePlayers"`         // Tied player IDs in voting
-	IsTieVote         bool              `json:"isTieVote"`
+	Code               string            `json:"code"`
+	Players            map[string]*Player `json:"players"`
+	Stage              Stage             `json:"stage"`
+	Config             GameConfig        `json:"config"`
+	GoodWord           string            `json:"goodWord,omitempty"`     // Omitted in sanitized states
+	ConfusedWord       string            `json:"confusedWord,omitempty"` // Omitted in sanitized states
+	ActiveWordNum      int               `json:"activeWordNum"`
+	EliminatedThisTurn []string          `json:"eliminatedThisTurn"` // IDs of players eliminated in the current voting round
+	Winner             string            `json:"winner"`             // "KITTENS", "SPY_PUP", "CONFUSED_KITTENS"
+	TiePlayers         []string          `json:"tiePlayers"`         // Tied player IDs in voting
+	IsTieVote          bool              `json:"isTieVote"`
+	TurnOrder          []string          `json:"turnOrder"`          // Ordered list of active player IDs
+	CurrentTurnIdx     int               `json:"currentTurnIdx"`
 }
 
 func GenerateRoomCode() string {
@@ -188,6 +191,22 @@ func (l *Lobby) StartRound(pack MissionPack) {
 	l.TiePlayers = nil
 	l.IsTieVote = false
 
+	// Build TurnOrder for sequential clues
+	var turnOrder []string
+	for id, p := range l.Players {
+		if !p.IsEliminated {
+			turnOrder = append(turnOrder, id)
+		}
+	}
+	// Shuffle turnOrder to randomize clue order
+	for i := len(turnOrder) - 1; i > 0; i-- {
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(i+1)))
+		j := int(n.Int64())
+		turnOrder[i], turnOrder[j] = turnOrder[j], turnOrder[i]
+	}
+	l.TurnOrder = turnOrder
+	l.CurrentTurnIdx = 0
+
 	if l.Config.Mode == ModeInPerson {
 		l.Stage = StageDealt
 	} else {
@@ -203,6 +222,20 @@ func (l *Lobby) SubmitClue(playerID string, clue string) bool {
 	p, ok := l.Players[playerID]
 	if !ok || p.IsEliminated {
 		return false
+	}
+
+	if l.Config.SequentialClues {
+		// Verify it is this player's turn
+		if len(l.TurnOrder) == 0 || l.TurnOrder[l.CurrentTurnIdx] != playerID {
+			return false
+		}
+		p.Clue = strings.TrimSpace(clue)
+		l.CurrentTurnIdx++
+		if l.CurrentTurnIdx >= len(l.TurnOrder) {
+			l.Stage = StageDebate
+			return true
+		}
+		return true
 	}
 
 	p.Clue = strings.TrimSpace(clue)
@@ -433,12 +466,17 @@ func (l *Lobby) SanitizeState(viewerID string) interface{} {
 
 	sanitizedPlayers := make(map[string]*SanitizedPlayer)
 	for id, p := range l.Players {
+		clueToSend := ""
+		if l.Stage != StageClues || id == viewerID || (l.Config.SequentialClues && p.Clue != "") {
+			clueToSend = p.Clue
+		}
+
 		sp := &SanitizedPlayer{
 			ID:           p.ID,
 			Name:         p.Name,
 			IsHost:       p.IsHost,
 			IsEliminated: p.IsEliminated,
-			Clue:         p.Clue,
+			Clue:         clueToSend,
 			Vote:         p.Vote,
 			Connected:    p.Connected,
 		}
@@ -456,30 +494,34 @@ func (l *Lobby) SanitizeState(viewerID string) interface{} {
 	}
 
 	type SanitizedLobby struct {
-		Code              string                      `json:"code"`
-		Players           map[string]*SanitizedPlayer `json:"players"`
-		Stage             Stage                       `json:"stage"`
-		Config            GameConfig                  `json:"config"`
-		ActiveWordNum     int                         `json:"activeWordNum"`
+		Code               string                      `json:"code"`
+		Players            map[string]*SanitizedPlayer `json:"players"`
+		Stage              Stage                       `json:"stage"`
+		Config             GameConfig                  `json:"config"`
+		ActiveWordNum      int                         `json:"activeWordNum"`
 		EliminatedThisTurn []string                    `json:"eliminatedThisTurn"`
-		Winner            string                      `json:"winner"`
-		TiePlayers        []string                    `json:"tiePlayers"`
-		IsTieVote         bool                        `json:"isTieVote"`
+		Winner             string                      `json:"winner"`
+		TiePlayers         []string                    `json:"tiePlayers"`
+		IsTieVote          bool                        `json:"isTieVote"`
+		TurnOrder          []string                    `json:"turnOrder"`
+		CurrentTurnIdx     int                         `json:"currentTurnIdx"`
 		// Only show the real passwords at game over
-		GoodWord          string                      `json:"goodWord,omitempty"`
-		ConfusedWord      string                      `json:"confusedWord,omitempty"`
+		GoodWord           string                      `json:"goodWord,omitempty"`
+		ConfusedWord       string                      `json:"confusedWord,omitempty"`
 	}
 
 	sl := SanitizedLobby{
-		Code:              l.Code,
-		Players:           sanitizedPlayers,
-		Stage:             l.Stage,
-		Config:            l.Config,
-		ActiveWordNum:     l.ActiveWordNum,
+		Code:               l.Code,
+		Players:            sanitizedPlayers,
+		Stage:              l.Stage,
+		Config:             l.Config,
+		ActiveWordNum:      l.ActiveWordNum,
 		EliminatedThisTurn: l.EliminatedThisTurn,
-		Winner:            l.Winner,
-		TiePlayers:        l.TiePlayers,
-		IsTieVote:         l.IsTieVote,
+		Winner:             l.Winner,
+		TiePlayers:         l.TiePlayers,
+		IsTieVote:          l.IsTieVote,
+		TurnOrder:          l.TurnOrder,
+		CurrentTurnIdx:     l.CurrentTurnIdx,
 	}
 
 	if l.Stage == StageGameOver {

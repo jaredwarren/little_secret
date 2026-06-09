@@ -34,6 +34,7 @@ const lobbyPlayersList = document.getElementById("lobby-players-list");
 const btnStartGame = document.getElementById("btn-start-game");
 const startGameWarning = document.getElementById("start-game-warning");
 const selectGameMode = document.getElementById("select-game-mode");
+const selectClueStyle = document.getElementById("select-clue-style");
 const selectWordPack = document.getElementById("select-word-pack");
 const selectWordNum = document.getElementById("select-word-num");
 const btnToggleAdvanced = document.getElementById("btn-toggle-advanced");
@@ -200,12 +201,14 @@ const triggerSettingsUpdate = () => {
         packName: selectWordPack.value,
         confusedCount: parseInt(inputConfusedCount.value) || -1,
         spyCount: parseInt(inputSpyCount.value) || -1,
-        manualWordNum: parseInt(selectWordNum.value) || 0
+        manualWordNum: parseInt(selectWordNum.value) || 0,
+        sequentialClues: selectClueStyle.value === "true"
     };
     sendAction("configure_room", { config });
 };
 
 selectGameMode.addEventListener("change", triggerSettingsUpdate);
+selectClueStyle.addEventListener("change", triggerSettingsUpdate);
 selectWordPack.addEventListener("change", triggerSettingsUpdate);
 selectWordNum.addEventListener("change", triggerSettingsUpdate);
 inputConfusedCount.addEventListener("input", triggerSettingsUpdate);
@@ -236,67 +239,7 @@ btnSubmitClue.addEventListener("click", () => {
 });
 
 btnAdvanceVoting.addEventListener("click", () => {
-    sendAction("submit_vote", { targetId: "" }); // Host pushes dummy to trigger resolution (handled as stage change in backend via empty vote check bypass or direct stage setting)
-    // Wait, in our backend lobby.go, to transition from Debate to Voting, we actually didn't write an explicit "advance_debate" action, but the client can send a message.
-    // Let's check: in backend we route "submit_vote" or other. In lobby.go, debate advances to voting?
-    // Wait, let's look at lobby.go. There is NO transition from DEBATE to VOTING written there!
-    // Ah! Let's check lobby.go:
-    // - StageClues -> SubmitClue (all submit) -> StageDebate.
-    // - SubmitVote is allowed in StageVoting.
-    // But how does it get from StageDebate to StageVoting?
-    // Let's inspect lobby.go. Yes, we missed a transition or a trigger!
-    // Wait, let's see. If the host calls "Call Vote", we should change lobby.Stage = StageVoting.
-    // Let's verify how this is handled in `hub.go`.
-    // In `hub.go`:
-    // case "submit_vote": h.handleSubmitVote(conn, &msg)
-    // Wait! If the host triggers a vote call, can we add an action "call_vote" or does "submit_vote" with targetId = "" do something?
-    // Wait, in `hub.go` or `lobby.go`, we can change the stage to `StageVoting` when the host sends `submit_vote` and the stage is `StageDebate`!
-    // Let's look at `lobby.go` or `hub.go` to see if we can edit it.
-    // Wait! Let's check `hub.go` for `submit_vote`.
-    // Yes! Let's write a "call_vote" action or let "submit_vote" with empty target advance the stage.
-    // Let's check how we handle transitioning from DEBATE to VOTING.
-    // Let's look at `hub.go` `handleSubmitVote`:
-    // It calls `lobby.SubmitVote(...)`. But `SubmitVote` check `if l.Stage != StageVoting { return false }`.
-    // So if the stage is DEBATE, `SubmitVote` returns false!
-    // This is a small bug/omission in our backend! We need to add a way to go from DEBATE to VOTING.
-    // Let's see: we should support an action `call_vote` (which sets stage to `StageVoting` and broadcasts) or we can allow the host to send `call_vote` directly.
-    // Let's check if we can add a handler in `hub.go` for `"call_vote"`.
-    // Yes, this is extremely easy to add! We can edit `server/hub.go` and `server/lobby.go` to support a `CallVote` action.
-    // Let's verify this. Let's do a quick check of what we need:
-    // In `lobby.go`:
-    // ```go
-    // func (l *Lobby) CallVote() bool {
-    //     if l.Stage != StageDebate { return false }
-    //     l.Stage = StageVoting
-    //     return true
-    // }
-    // ```
-    // In `hub.go`:
-    // - Case `"call_vote"`:
-    //   ```go
-    //   case "call_vote":
-    //       h.handleCallVote(conn, &msg)
-    //   ```
-    //   And:
-    //   ```go
-    //   func (h *Hub) handleCallVote(conn *websocket.Conn, msg *ClientMessage) {
-    //       h.mu.Lock()
-    //       lobby, ok := h.lobbies[msg.RoomCode]
-    //       if ok {
-    //           p, isHost := lobby.Players[msg.PlayerID]
-    //           if isHost && p.IsHost && lobby.Stage == StageDebate {
-    //               lobby.Stage = StageVoting
-    //           }
-    //       }
-    //       h.mu.Unlock()
-    //       go h.BroadcastLobbyState(msg.RoomCode)
-    //   }
-    //   ```
-    // This is perfect! Let's apply this fix to `server/hub.go` using `replace_file_content` first.
-    // Wait, let's write the JS call: `sendAction("call_vote")` in `app.js` first.
-    // Let's check where `btnAdvanceVoting` is set.
-    // Yes! `btnAdvanceVoting.addEventListener("click", () => { sendAction("call_vote"); });`
-    // This is much cleaner than abusing `submit_vote`.
+    sendAction("call_vote");
 });
 
 btnInPersonReveal.addEventListener("click", () => {
@@ -539,9 +482,11 @@ function renderLobbyScreen(myPlayer) {
     });
 
     // Configure form settings
+    const sequentialFormGroup = document.getElementById("form-group-sequential");
     if (isHost) {
         hostSettingsNotice.classList.add("hidden");
         selectGameMode.disabled = false;
+        selectClueStyle.disabled = false;
         selectWordPack.disabled = false;
         selectWordNum.disabled = false;
         inputConfusedCount.disabled = false;
@@ -553,6 +498,7 @@ function renderLobbyScreen(myPlayer) {
     } else {
         hostSettingsNotice.classList.remove("hidden");
         selectGameMode.disabled = true;
+        selectClueStyle.disabled = true;
         selectWordPack.disabled = true;
         selectWordNum.disabled = true;
         inputConfusedCount.disabled = true;
@@ -562,8 +508,16 @@ function renderLobbyScreen(myPlayer) {
         startGameWarning.className = "warning-text hidden";
     }
 
+    // Hide clue style in in-person mode
+    if (selectGameMode.value === "IN_PERSON") {
+        sequentialFormGroup.classList.add("hidden");
+    } else {
+        sequentialFormGroup.classList.remove("hidden");
+    }
+
     // Sync input values (from state Config)
     selectGameMode.value = lobbyState.config.mode;
+    selectClueStyle.value = lobbyState.config.sequentialClues ? "true" : "false";
     selectWordNum.value = lobbyState.config.manualWordNum.toString();
     inputConfusedCount.value = lobbyState.config.confusedCount === -1 ? "" : lobbyState.config.confusedCount.toString();
     inputSpyCount.value = lobbyState.config.spyCount === -1 ? "" : lobbyState.config.spyCount.toString();
@@ -631,30 +585,79 @@ function renderGameScreen(myPlayer) {
             gameStageTitle.textContent = "SUBMIT CLUES";
             panelClues.classList.remove("hidden");
 
-            // Setup input state
-            if (myPlayer.isEliminated) {
-                inputClue.disabled = true;
-                btnSubmitClue.disabled = true;
-                inputClue.placeholder = "You are eliminated...";
-            } else if (myPlayer.clue !== "") {
-                inputClue.disabled = true;
-                btnSubmitClue.disabled = true;
-                inputClue.placeholder = `Clue sent: ${myPlayer.clue}`;
-            } else {
-                inputClue.disabled = false;
-                btnSubmitClue.disabled = false;
-                inputClue.placeholder = "Type clue here...";
-            }
+            if (lobbyState.config.sequentialClues) {
+                const activePlayerID = lobbyState.turnOrder[lobbyState.currentTurnIdx];
+                const isActivePlayer = activePlayerID === playerId;
 
-            // Fill submission grid
-            cluesStatusList.innerHTML = "";
-            Object.values(lobbyState.players).forEach(p => {
-                if (p.isEliminated) return;
-                const badge = document.createElement("div");
-                badge.className = p.clue !== "" ? "status-badge submitted" : "status-badge";
-                badge.innerHTML = `<span>${p.name}</span><span>${p.clue !== "" ? "✓" : "..."}</span>`;
-                cluesStatusList.appendChild(badge);
-            });
+                // Setup input state for sequential clues
+                if (myPlayer.isEliminated) {
+                    inputClue.disabled = true;
+                    btnSubmitClue.disabled = true;
+                    inputClue.placeholder = "You are eliminated...";
+                } else if (myPlayer.clue !== "") {
+                    inputClue.disabled = true;
+                    btnSubmitClue.disabled = true;
+                    inputClue.placeholder = `Clue sent: ${myPlayer.clue}`;
+                } else if (isActivePlayer) {
+                    inputClue.disabled = false;
+                    btnSubmitClue.disabled = false;
+                    inputClue.placeholder = "It's your turn! Type clue here...";
+                } else {
+                    inputClue.disabled = true;
+                    btnSubmitClue.disabled = true;
+                    const activePlayerName = lobbyState.players[activePlayerID]?.name || "another player";
+                    inputClue.placeholder = `Waiting for ${activePlayerName} to submit clue...`;
+                }
+
+                // Fill sequential turn list
+                cluesStatusList.innerHTML = "";
+                lobbyState.turnOrder.forEach((tid, idx) => {
+                    const p = lobbyState.players[tid];
+                    if (!p) return;
+
+                    const isCurrentTurn = idx === lobbyState.currentTurnIdx;
+                    const badge = document.createElement("div");
+                    
+                    let statusText = "waiting";
+                    if (p.clue !== "") {
+                        statusText = p.clue; // Visible since it's sequential
+                        badge.className = "status-badge submitted";
+                    } else if (isCurrentTurn) {
+                        statusText = "typing...";
+                        badge.className = "status-badge active-turn-glow";
+                    } else {
+                        badge.className = "status-badge";
+                    }
+                    
+                    badge.innerHTML = `<span>${p.name}</span><strong>${statusText}</strong>`;
+                    cluesStatusList.appendChild(badge);
+                });
+            } else {
+                // Setup input state for simultaneous clues
+                if (myPlayer.isEliminated) {
+                    inputClue.disabled = true;
+                    btnSubmitClue.disabled = true;
+                    inputClue.placeholder = "You are eliminated...";
+                } else if (myPlayer.clue !== "") {
+                    inputClue.disabled = true;
+                    btnSubmitClue.disabled = true;
+                    inputClue.placeholder = `Clue sent: ${myPlayer.clue}`;
+                } else {
+                    inputClue.disabled = false;
+                    btnSubmitClue.disabled = false;
+                    inputClue.placeholder = "Type clue here...";
+                }
+
+                // Fill submission grid
+                cluesStatusList.innerHTML = "";
+                Object.values(lobbyState.players).forEach(p => {
+                    if (p.isEliminated) return;
+                    const badge = document.createElement("div");
+                    badge.className = p.clue !== "" ? "status-badge submitted" : "status-badge";
+                    badge.innerHTML = `<span>${p.name}</span><span>${p.clue !== "" ? "✓" : "..."}</span>`;
+                    cluesStatusList.appendChild(badge);
+                });
+            }
 
         } else if (lobbyState.stage === "DEBATE") {
             gameStageTitle.textContent = "DEBATE & DISCUSS";

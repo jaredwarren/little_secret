@@ -42,9 +42,20 @@ func main() {
 	// HTTP Routing
 	mux := http.NewServeMux()
 
-	// Static files
-	fs := http.FileServer(http.Dir(staticDir))
-	mux.Handle("/", fs)
+	// Serve static files, falling back to index.html for SPA/custom routes (like /home)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		filePath := filepath.Join(staticDir, filepath.Clean(r.URL.Path))
+
+		// Check if file exists and is not a directory
+		info, err := os.Stat(filePath)
+		if err == nil && !info.IsDir() {
+			http.ServeFile(w, r, filePath)
+			return
+		}
+
+		// Fallback to index.html
+		http.ServeFile(w, r, filepath.Join(staticDir, "index.html"))
+	})
 
 	// WebSocket handler
 	mux.HandleFunc("/ws", hub.HandleConnection)
