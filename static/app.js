@@ -36,7 +36,6 @@ const startGameWarning = document.getElementById("start-game-warning");
 const selectGameMode = document.getElementById("select-game-mode");
 const selectClueStyle = document.getElementById("select-clue-style");
 const selectWordPack = document.getElementById("select-word-pack");
-const selectWordNum = document.getElementById("select-word-num");
 const btnToggleAdvanced = document.getElementById("btn-toggle-advanced");
 const advancedSettings = document.getElementById("advanced-settings");
 const inputConfusedCount = document.getElementById("input-confused-count");
@@ -140,13 +139,7 @@ window.addEventListener("load", () => {
         }
     }
     
-    // Fill dynamic options for manual word number (1-21)
-    for (let i = 1; i <= 21; i++) {
-        const opt = document.createElement("option");
-        opt.value = i.toString();
-        opt.textContent = `Card #${i}`;
-        selectWordNum.appendChild(opt);
-    }
+
 
     // Connect WS if we have a room code already
     if (debugPlayer) {
@@ -212,7 +205,6 @@ const triggerSettingsUpdate = () => {
         packName: selectWordPack.value,
         confusedCount: parseInt(inputConfusedCount.value) || -1,
         spyCount: parseInt(inputSpyCount.value) || -1,
-        manualWordNum: parseInt(selectWordNum.value) || 0,
         sequentialClues: selectClueStyle.value === "true"
     };
     sendAction("configure_room", { config });
@@ -221,7 +213,6 @@ const triggerSettingsUpdate = () => {
 selectGameMode.addEventListener("change", triggerSettingsUpdate);
 selectClueStyle.addEventListener("change", triggerSettingsUpdate);
 selectWordPack.addEventListener("change", triggerSettingsUpdate);
-selectWordNum.addEventListener("change", triggerSettingsUpdate);
 inputConfusedCount.addEventListener("input", triggerSettingsUpdate);
 inputSpyCount.addEventListener("input", triggerSettingsUpdate);
 
@@ -499,7 +490,6 @@ function renderLobbyScreen(myPlayer) {
         selectGameMode.disabled = false;
         selectClueStyle.disabled = false;
         selectWordPack.disabled = false;
-        selectWordNum.disabled = false;
         inputConfusedCount.disabled = false;
         inputSpyCount.disabled = false;
         
@@ -511,7 +501,6 @@ function renderLobbyScreen(myPlayer) {
         selectGameMode.disabled = true;
         selectClueStyle.disabled = true;
         selectWordPack.disabled = true;
-        selectWordNum.disabled = true;
         inputConfusedCount.disabled = true;
         inputSpyCount.disabled = true;
         
@@ -526,10 +515,31 @@ function renderLobbyScreen(myPlayer) {
         sequentialFormGroup.classList.remove("hidden");
     }
 
+    // Disable Simultaneous option if 5+ players with at least 1 Spy Pup
+    const numPlayers = playersArr.length;
+    let expectedSpyCount = lobbyState.config.spyCount;
+    if (expectedSpyCount < 0) {
+        expectedSpyCount = (numPlayers === 4) ? 0 : 1;
+    }
+
+    const simultaneousOption = selectClueStyle.querySelector('option[value="false"]');
+    if (numPlayers >= 5 && expectedSpyCount > 0) {
+        simultaneousOption.disabled = true;
+        
+        // Force sequential style if currently set to simultaneous
+        if (lobbyState.config.sequentialClues === false && isHost) {
+            lobbyState.config.sequentialClues = true;
+            setTimeout(() => {
+                triggerSettingsUpdate();
+            }, 0);
+        }
+    } else {
+        simultaneousOption.disabled = false;
+    }
+
     // Sync input values (from state Config)
     selectGameMode.value = lobbyState.config.mode;
     selectClueStyle.value = lobbyState.config.sequentialClues ? "true" : "false";
-    selectWordNum.value = lobbyState.config.manualWordNum.toString();
     inputConfusedCount.value = lobbyState.config.confusedCount === -1 ? "" : lobbyState.config.confusedCount.toString();
     inputSpyCount.value = lobbyState.config.spyCount === -1 ? "" : lobbyState.config.spyCount.toString();
     

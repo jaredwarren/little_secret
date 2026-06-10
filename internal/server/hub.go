@@ -417,10 +417,6 @@ func (h *Hub) handleNextRound(conn *websocket.Conn, msg *ClientMessage) {
 	}
 
 	h.mu.Lock()
-	// Increment manual word num if it is a manual sequence to help them go to next card
-	if lobby.Config.ManualWordNum > 0 {
-		lobby.Config.ManualWordNum = (lobby.Config.ManualWordNum % len(pack.Words)) + 1
-	}
 	lobby.StartRound(pack)
 	h.mu.Unlock()
 

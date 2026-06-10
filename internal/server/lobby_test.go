@@ -42,6 +42,7 @@ func TestStartRoundAndGameplayOnline(t *testing.T) {
 	lobby.Players["p3"] = &Player{ID: "p3", Name: "Charlie", Connected: true}
 	lobby.Players["p4"] = &Player{ID: "p4", Name: "David", Connected: true}
 
+	lobby.Config.SequentialClues = false
 	// Start round
 	lobby.StartRound(pack)
 
@@ -337,5 +338,38 @@ func TestSequentialClues(t *testing.T) {
 	lobby.SubmitClue("p4", "clue-david")
 	if lobby.Stage != StageDebate {
 		t.Errorf("Expected stage DEBATE after last player submits, got %s", lobby.Stage)
+	}
+}
+
+func TestSpyNeverGoesFirst(t *testing.T) {
+	pack := MissionPack{
+		Name: "Test Pack",
+		Words: []WordPair{
+			{"GoodWord", "ConfusedWord"},
+		},
+	}
+
+	// Run multiple iterations to ensure randomness logic is thoroughly tested
+	for i := 0; i < 50; i++ {
+		lobby := NewLobby("TEST", "p1", "Alice")
+		lobby.Config.SequentialClues = true
+		lobby.Players["p1"] = &Player{ID: "p1", Name: "Alice", IsHost: true, Connected: true}
+		lobby.Players["p2"] = &Player{ID: "p2", Name: "Bob", Connected: true}
+		lobby.Players["p3"] = &Player{ID: "p3", Name: "Charlie", Connected: true}
+		lobby.Players["p4"] = &Player{ID: "p4", Name: "David", Connected: true}
+		lobby.Players["p5"] = &Player{ID: "p5", Name: "Emma", Connected: true}
+
+		lobby.StartRound(pack)
+
+		if len(lobby.TurnOrder) == 0 {
+			t.Errorf("Expected non-empty TurnOrder")
+			continue
+		}
+
+		firstPlayerID := lobby.TurnOrder[0]
+		firstPlayer := lobby.Players[firstPlayerID]
+		if firstPlayer.Role == RoleSpyPup {
+			t.Errorf("Iteration %d: Expected first player in TurnOrder not to be a Spy Pup", i)
+		}
 	}
 }

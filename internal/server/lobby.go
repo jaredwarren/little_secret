@@ -51,7 +51,6 @@ type GameConfig struct {
 	PackName        string   `json:"packName"`
 	ConfusedCount   int      `json:"confusedCount"`
 	SpyCount        int      `json:"spyCount"`
-	ManualWordNum   int      `json:"manualWordNum"` // 0 for random, 1-21 for manual
 	SequentialClues bool     `json:"sequentialClues"`
 }
 
@@ -85,11 +84,11 @@ func NewLobby(code string, hostID, hostName string) *Lobby {
 		Players: make(map[string]*Player),
 		Stage:   StageLobby,
 		Config: GameConfig{
-			Mode:          ModeOnline,
-			PackName:      DefaultPackName,
-			ConfusedCount: -1, // -1 indicates default by player count
-			SpyCount:      -1,
-			ManualWordNum: 0, // random
+			Mode:            ModeOnline,
+			PackName:        DefaultPackName,
+			ConfusedCount:   -1, // -1 indicates default by player count
+			SpyCount:        -1,
+			SequentialClues: true,
 		},
 	}
 }
@@ -137,13 +136,8 @@ func (l *Lobby) StartRound(pack MissionPack) {
 	goodCount := numPlayers - confusedCount - spyCount
 
 	// Choose word number (1-21)
-	wordIdx := 0
-	if l.Config.ManualWordNum >= 1 && l.Config.ManualWordNum <= len(pack.Words) {
-		wordIdx = l.Config.ManualWordNum - 1
-	} else {
-		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(pack.Words))))
-		wordIdx = int(n.Int64())
-	}
+	n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(pack.Words))))
+	wordIdx := int(n.Int64())
 	l.ActiveWordNum = wordIdx + 1
 
 	wordPair := pack.Words[wordIdx]
@@ -213,6 +207,21 @@ func (l *Lobby) StartRound(pack MissionPack) {
 		j := int(n.Int64())
 		turnOrder[i], turnOrder[j] = turnOrder[j], turnOrder[i]
 	}
+
+	// Ensure Spy Pup never goes first in turn order
+	if len(turnOrder) > 1 {
+		firstPlayerID := turnOrder[0]
+		if l.Players[firstPlayerID].Role == RoleSpyPup {
+			for k := 1; k < len(turnOrder); k++ {
+				otherPlayerID := turnOrder[k]
+				if l.Players[otherPlayerID].Role != RoleSpyPup {
+					turnOrder[0], turnOrder[k] = turnOrder[k], turnOrder[0]
+					break
+				}
+			}
+		}
+	}
+
 	l.TurnOrder = turnOrder
 	l.CurrentTurnIdx = 0
 
