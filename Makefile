@@ -21,6 +21,19 @@ run:
 	@echo "Starting server on port $(PORT)..."
 	PORT=$(PORT) go run cmd/game/main.go
 
+## play: Start the server and open browser tabs for 4 local test players
+play:
+	@echo "Starting server on port $(PORT)..."
+	@PORT=$(PORT) go run cmd/game/main.go & \
+	PID=$$!; \
+	sleep 1.5; \
+	echo "Opening browser tabs for Alice, Bob, Charlie, and David..."; \
+	open "http://localhost:$(PORT)/?player=Alice"; \
+	open "http://localhost:$(PORT)/?player=Bob"; \
+	open "http://localhost:$(PORT)/?player=Charlie"; \
+	open "http://localhost:$(PORT)/?player=David"; \
+	wait $$PID
+
 ## run-bin: Build and run the compiled binary
 run-bin: build
 	@echo "Starting compiled binary on port $(PORT)..."

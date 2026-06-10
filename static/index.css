@@ -944,9 +944,128 @@ button:disabled {
     box-shadow: var(--neon-kitten-glow);
 }
 
+.reveal-role-badge.confused {
+    background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+    box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
+}
+
 .reveal-role-badge.spy {
     background: var(--neon-spy);
     box-shadow: var(--neon-spy-glow);
+}
+
+/* Voting Breakdown styling on Reveal page */
+.voting-breakdown-box {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    width: 100%;
+    text-align: left;
+}
+
+.voting-breakdown-box h3 {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+}
+
+.votes-breakdown-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+.votes-breakdown-list li {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 0.5rem;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.votes-breakdown-list li .voter {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.votes-breakdown-list li .arrow {
+    color: var(--text-muted);
+    margin: 0 0.75rem;
+}
+
+.votes-breakdown-list li .target {
+    font-weight: 600;
+    color: var(--neon-cyan);
+}
+
+.votes-breakdown-list li .target.eliminated-target {
+    color: #fb923c;
+    text-shadow: 0 0 8px rgba(251, 146, 60, 0.3);
+}
+
+.votes-breakdown-list li .target.skipped-vote {
+    color: var(--text-muted);
+    font-style: italic;
+    font-weight: 400;
+}
+
+/* Viewer's Card Info Reminder styles */
+.reveal-my-info-box {
+    margin-top: 1.5rem;
+    padding: 0.75rem 1.25rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 0.5rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.reveal-my-info-box span:first-child {
+    font-family: var(--font-display);
+    letter-spacing: 0.05em;
+}
+
+.my-role-badge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.25rem;
+    font-weight: 700;
+    font-size: 0.8rem;
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.my-role-badge.spy {
+    background: rgba(249, 115, 22, 0.2);
+    color: #fb923c;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.my-role-badge.confused {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.my-word-badge {
+    color: var(--neon-cyan);
+    font-weight: 700;
 }
 
 .reveal-result-box input {

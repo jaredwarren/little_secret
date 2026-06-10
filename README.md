@@ -66,6 +66,9 @@ make help
 # Run the Go server locally on default port 8080
 make run
 
+# Start the server and automatically open 4 player browser tabs for local test play
+make play
+
 # Run the Go server on a custom port
 PORT=9090 make run
 

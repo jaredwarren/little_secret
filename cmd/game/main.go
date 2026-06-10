@@ -44,6 +44,11 @@ func main() {
 
 	// Serve static files, falling back to index.html for SPA/custom routes (like /home)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Disable caching for local play/development
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+
 		filePath := filepath.Join(staticDir, filepath.Clean(r.URL.Path))
 
 		// Check if file exists and is not a directory

@@ -86,6 +86,11 @@ const inputSpyGuess = document.getElementById("input-spy-guess");
 const btnSubmitSpyGuess = document.getElementById("btn-submit-spy-guess");
 const hostRevealControls = document.getElementById("host-reveal-controls");
 const btnAdvanceRound = document.getElementById("btn-advance-round");
+const revealVotingBreakdown = document.getElementById("reveal-voting-breakdown");
+const revealVotesList = document.getElementById("reveal-votes-list");
+const revealMyInfoBox = document.getElementById("reveal-my-info-box");
+const revealMyRoleBadge = document.getElementById("reveal-my-role-badge");
+const revealMyWordBadge = document.getElementById("reveal-my-word-badge");
 
 // Game over screen elements
 const gameOverTitle = document.getElementById("game-over-title");
@@ -116,8 +121,14 @@ window.addEventListener("load", () => {
     
     if (debugPlayer) {
         playerName = debugPlayer;
-        playerId = "debug_" + debugPlayer + "_" + Math.floor(Math.random() * 10000);
-        roomCode = debugRoom || "";
+        const storageKey = `little_secret_debug_id_${debugPlayer}`;
+        let cachedDebugId = sessionStorage.getItem(storageKey);
+        if (!cachedDebugId) {
+            cachedDebugId = "debug_" + debugPlayer + "_" + Math.floor(Math.random() * 10000);
+            sessionStorage.setItem(storageKey, cachedDebugId);
+        }
+        playerId = cachedDebugId;
+        roomCode = debugRoom || localStorage.getItem("little_secret_room_code") || "";
         inputNickname.value = playerName;
         if (roomCode) {
             inputRoomCode.value = roomCode;
@@ -745,8 +756,8 @@ function renderGameScreen(myPlayer) {
 
 // 3. Render Reveal
 function renderRevealScreen(myPlayer) {
-    const elimId = lobbyState.eliminatedThisTurn[0];
-    const elimPlayer = lobbyState.players[elimId];
+    const elimId = lobbyState.eliminatedThisTurn && lobbyState.eliminatedThisTurn.length > 0 ? lobbyState.eliminatedThisTurn[0] : null;
+    const elimPlayer = elimId ? lobbyState.players[elimId] : null;
 
     if (!elimPlayer) {
         eliminatedPlayerName.textContent = "No one";
@@ -760,6 +771,12 @@ function renderRevealScreen(myPlayer) {
         if (elimPlayer.role === "Spy Pup") {
             normalRevealResult.classList.add("hidden");
             spyGuessBox.classList.remove("hidden");
+
+            // Update badge text with emoji
+            const spyRoleBadge = spyGuessBox.querySelector(".reveal-role-badge");
+            if (spyRoleBadge) {
+                spyRoleBadge.textContent = "🐶 SPY PUP";
+            }
 
             // Spy guess interaction
             if (elimId === playerId) {
@@ -778,15 +795,100 @@ function renderRevealScreen(myPlayer) {
             spyGuessBox.classList.add("hidden");
             normalRevealResult.classList.remove("hidden");
 
-            revealRoleBadge.textContent = elimPlayer.role.toUpperCase();
             if (elimPlayer.role === "Good Kitten") {
+                revealRoleBadge.textContent = "🐱 GOOD KITTEN";
                 revealRoleBadge.className = "reveal-role-badge";
                 revealRoleDetails.textContent = `Their secret word matches the correct password: "${elimPlayer.word}"`;
             } else {
+                revealRoleBadge.textContent = "😿 CONFUSED KITTEN";
                 revealRoleBadge.className = "reveal-role-badge confused";
                 revealRoleDetails.textContent = `They did not know they were confused! Their secret word was: "${elimPlayer.word}"`;
             }
         }
+    }
+
+    // Render Voting Breakdown (Online Mode only)
+    if (lobbyState.config.mode === "ONLINE") {
+        revealVotingBreakdown.classList.remove("hidden");
+        
+        // Calculate vote counts first to display in parentheses
+        const voteCounts = {};
+        Object.values(lobbyState.players).forEach(p => {
+            if (p.vote && lobbyState.players[p.vote]) {
+                voteCounts[p.vote] = (voteCounts[p.vote] || 0) + 1;
+            }
+        });
+
+        // Filter and sort players who were active voters in this round
+        const activeVoters = Object.values(lobbyState.players)
+            .filter(p => !p.isEliminated || (lobbyState.eliminatedThisTurn && lobbyState.eliminatedThisTurn.includes(p.id)))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        revealVotesList.innerHTML = "";
+        activeVoters.forEach(p => {
+            const li = document.createElement("li");
+
+            const voterSpan = document.createElement("span");
+            voterSpan.className = "voter";
+            voterSpan.textContent = p.name;
+
+            const arrowSpan = document.createElement("span");
+            arrowSpan.className = "arrow";
+            arrowSpan.textContent = "➔";
+
+            const targetSpan = document.createElement("span");
+            targetSpan.className = "target";
+
+            if (p.vote && lobbyState.players[p.vote]) {
+                const targetPlayer = lobbyState.players[p.vote];
+                const count = voteCounts[p.vote] || 0;
+                targetSpan.textContent = `${targetPlayer.name} (${count} ${count === 1 ? 'vote' : 'votes'})`;
+
+                if (lobbyState.eliminatedThisTurn && lobbyState.eliminatedThisTurn.includes(p.vote)) {
+                    targetSpan.classList.add("eliminated-target");
+                }
+            } else {
+                targetSpan.textContent = "No Vote / Skipped";
+                targetSpan.classList.add("skipped-vote");
+            }
+
+            li.appendChild(voterSpan);
+            li.appendChild(arrowSpan);
+            li.appendChild(targetSpan);
+            revealVotesList.appendChild(li);
+        });
+    } else {
+        revealVotingBreakdown.classList.add("hidden");
+    }
+
+    // Render My Info Reminder
+    if (myPlayer) {
+        revealMyInfoBox.classList.remove("hidden");
+        
+        let displayRole = "🐱 KITTEN";
+        let roleClass = "my-role-badge";
+        
+        if (myPlayer.role === "Spy Pup") {
+            displayRole = "🐶 SPY PUP";
+            roleClass = "my-role-badge spy";
+        } else if (myPlayer.role === "Good Kitten") {
+            displayRole = "🐱 GOOD KITTEN";
+            roleClass = "my-role-badge";
+        } else if (myPlayer.role === "Confused Kitten") {
+            displayRole = "😿 CONFUSED KITTEN";
+            roleClass = "my-role-badge confused";
+        }
+        
+        revealMyRoleBadge.textContent = displayRole;
+        revealMyRoleBadge.className = roleClass;
+        
+        if (myPlayer.role === "Spy Pup") {
+            revealMyWordBadge.textContent = "Word: None";
+        } else {
+            revealMyWordBadge.textContent = `Word: "${myPlayer.word}"`;
+        }
+    } else {
+        revealMyInfoBox.classList.add("hidden");
     }
 
     // Host controls to advance
