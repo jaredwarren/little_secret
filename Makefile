@@ -32,6 +32,7 @@ play:
 	open "http://localhost:$(PORT)/?player=Bob"; \
 	open "http://localhost:$(PORT)/?player=Charlie"; \
 	open "http://localhost:$(PORT)/?player=David"; \
+	open "http://localhost:$(PORT)/?player=William"; \
 	wait $$PID
 
 ## run-bin: Build and run the compiled binary
